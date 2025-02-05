@@ -4,8 +4,8 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract RewardPool is Ownable, ReentrancyGuard, EIP712 {
     // Struct to store information about token balance and its state
@@ -33,6 +33,8 @@ contract RewardPool is Ownable, ReentrancyGuard, EIP712 {
             "getSigner(address _account,uint256[] _ids,address[] _tokens,uint256[] _amounts,uint256 _nonce)"
         );
 
+    using SafeERC20 for IERC20;
+
     // Event emitted when rewards are claimed
     event RewardClaimed(
         uint256[] ids,
@@ -58,7 +60,7 @@ contract RewardPool is Ownable, ReentrancyGuard, EIP712 {
     );
 
     // Constructor to initialize the contract with the signer address
-    constructor(address _signer) EIP712(name, version) {
+    constructor(address _signer) Ownable(msg.sender) EIP712(name, version) {
         signer = _signer;
     }
 
@@ -87,7 +89,7 @@ contract RewardPool is Ownable, ReentrancyGuard, EIP712 {
         require(tokenWhitelist[token], "Token not whitelisted");
         require(!idBalances[id].isActive, "ID already used");
 
-        IERC20(token).transferFrom(msg.sender, address(this), amount);
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
         idBalances[id] = TokenBalance({
             token: token,
@@ -113,7 +115,7 @@ contract RewardPool is Ownable, ReentrancyGuard, EIP712 {
         uint256 amount = balanceInfo.balance;
         balanceInfo.balance = 0;
 
-        IERC20(balanceInfo.token).transfer(balanceInfo.merchant, amount);
+        IERC20(balanceInfo.token).safeTransfer(balanceInfo.merchant, amount);
 
         emit TokensWithdrawn(
             id,
@@ -185,7 +187,7 @@ contract RewardPool is Ownable, ReentrancyGuard, EIP712 {
         require(balanceInfo.balance >= amount, "Insufficient ID balance");
 
         balanceInfo.balance -= amount;
-        IERC20(token).transfer(account, amount);
+        IERC20(token).safeTransfer(account, amount);
 
         totalClaims[account][token] += amount;
     }
