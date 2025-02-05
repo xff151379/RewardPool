@@ -59,8 +59,14 @@ contract RewardPool is Ownable, ReentrancyGuard, EIP712 {
         address merchant
     );
 
+    // Event emitted when the signer is updated
+    event SignerUpdated(address newSigner);
+
+    // Event emitted when a token is added or removed from the whitelist
+    event TokenWhitelistUpdated(address token, bool status);
+
     // Constructor to initialize the contract with the signer address
-    constructor(address _signer) Ownable(msg.sender) EIP712(name, version) {
+    constructor(address _signer) EIP712(name, version) {
         signer = _signer;
     }
 
@@ -76,6 +82,7 @@ contract RewardPool is Ownable, ReentrancyGuard, EIP712 {
      */
     function setSigner(address _signer) external onlyOwner {
         signer = _signer;
+        emit SignerUpdated(_signer);
     }
 
     /**
@@ -249,6 +256,7 @@ contract RewardPool is Ownable, ReentrancyGuard, EIP712 {
                 }
             }
         }
+        emit TokenWhitelistUpdated(token, status);
     }
 
     /**
